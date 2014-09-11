@@ -1,13 +1,14 @@
 package Math::Vector::Real::Neighbors;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use strict;
 use warnings;
 
+use Math::Vector::Real::kdTree;
 use Sort::Key::Radix qw(nkeysort_inplace);
 
-sub neighbors {
+sub neighbors_slow {
     my $class = shift;
     my ($bottom, $top) = Math::Vector::Real->box(@_);
     my $box = $top - $bottom;
@@ -30,6 +31,21 @@ sub neighbors_bruteforce {
     _neighbors_bruteforce($v, $ixs, $dist2, $neighbors, $box, 0);
     return @$neighbors;
 }
+
+sub neighbors_kdtree {
+    shift;
+    my $tree = Math::Vector::Real::kdTree->new(@_);
+    map scalar($tree->find_nearest_neighbor_internal($_)), 0..$#_
+}
+
+sub neighbors_kdtree2 {
+    shift;
+    ( Math::Vector::Real::kdTree
+      -> new(@_)
+      -> find_nearest_neighbor_all_internal );
+}
+
+*neighbors = \&neighbors_kdtree2;
 
 sub _neighbors_bruteforce {
     my ($v, $ixs, $dist2, $neighbors) = @_;
@@ -111,6 +127,15 @@ sub _neighbors {
     }
 }
 
+sub neighbors_bubble {
+    my $class = shift;
+    my @v = @_;
+    my $n = sqrt(@v);
+    my (@c, @r, @p); # bubbles centers, radius and points
+}
+
+sub _neighbors_bubble {}
+
 1;
 __END__
 
@@ -120,6 +145,7 @@ Math::Vector::Real::Neighbors - find nearest neighbor for a set of points
 
 =head1 SYNOPSIS
 
+  use Math::Vector::Real
   use Math::Vector::Real::Neighbors;
   use Math::Vector::Real::Random;
 
@@ -131,6 +157,11 @@ Math::Vector::Real::Neighbors - find nearest neighbor for a set of points
 
 This module is able to find for every point in a given set its nearest
 neighbour from the same set.
+
+B<Note: currently the C<neighbors> method is just a thin wrapper for
+the neighbor look-up algorithm provided in
+L<Math::Vector::Real::kdTree> which is a couple of orders of magnitude
+faster than the old one formerly used here.
 
 =head2 API
 
@@ -158,15 +189,15 @@ The wikipedia entry for Nearest Neighbor Search L<http://en.wikipedia.org/wiki/N
 
 L<http://cloud.github.com/downloads/salva/p5-Math-Vector-Real-Neighbors/nearest_neighbors.png>
 
-=for html
+=begin html
 
-<image
-src="http://cloud.github.com/downloads/salva/p5-Math-Vector-Real-Neighbors/nearest_neighbors.png"
-alt="some nearest neighbor graphical representation" width="1000" heigh="1000"></image>
+<image src="http://cloud.github.com/downloads/salva/p5-Math-Vector-Real-Neighbors/nearest_neighbors.png" alt="some nearest neighbor graphical representation" width="1000" heigh="1000"></image>
+
+=end html
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2011 by Salvador FandiE<ntilde>o
+Copyright (C) 2011, 2014 by Salvador FandiE<ntilde>o
 E<lt>sfandino@yahoo.comE<gt>
 
 This library is free software; you can redistribute it and/or modify
